@@ -5,7 +5,7 @@ import h5py
 import sys
 from spad_tools.listFiles import listFiles
 from spad_tools.array2tiff import array2tiff, array2RGBtiff
-from spad_tools.getFCSinfo import getFileInfo
+from spad_fcs.getFCSinfo import getFileInfo
 from libttp import ttp
 
 """

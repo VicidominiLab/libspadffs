@@ -16,8 +16,8 @@ from spad_tools.listFiles import listFiles
 import ntpath
 from spad_fcs.corr2csv import corr2csv
 import scipy as spy
-from spad_fcs.scipy import signal
-from spad_fcs.binData import binDataChunks
+from scipy import signal
+from spad_tools.binData import binDataChunks
 
 
 class correlations:

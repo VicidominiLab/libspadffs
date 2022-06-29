@@ -1,5 +1,5 @@
 import numpy as np
-from checkfname import checkfname
+from spad_tools.checkfname import checkfname
 from tifffile import imwrite, imread
 from matplotlib import cm
 
