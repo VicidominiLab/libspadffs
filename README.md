@@ -1,2 +1,2 @@
-# spad_ffs_ttm
- spad_ffs for ttm
+libspadffs this is a **version specific** for the BrightEyes-TTM project.
+ 
