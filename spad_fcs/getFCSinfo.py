@@ -8,7 +8,7 @@ class infoObj:
 def getFCSinfo(fname, parameter=['all']):
     
     """
-    Get info from FCS info file
+    Get info from FCS info file (old version)
     ===========================================================================
     Input           Meaning
     ---------------------------------------------------------------------------
@@ -28,9 +28,9 @@ def getFCSinfo(fname, parameter=['all']):
     fname = fname.replace("\\", "/")
     fname = Path(fname)
     
-    f = open(fname, "r")
+    f = open(fname, "r", encoding="ISO8859-1") 
     if f.mode == "r":
-        contents = f.read()
+        contents = f.read()  # in the case of error remove the encoding ="ISO8859-1"
         if parameter == ['all']:
             output = infoObj()
             info = float(getFCSinfoSingleParam(contents, "DURATION [s]"))
@@ -43,6 +43,7 @@ def getFCSinfo(fname, parameter=['all']):
             info = float(getFCSinfoSingleParam(contents, "READING SPEED [kHz]"))
             output.readingSpeed = info
             output.dwellTime = 1e-3 / info # s
+            output.timeResolution = 1e6 * output.dwellTime # µs
             return output
         else:
             output = getFCSinfoSingleParam(contents, parameter)
@@ -70,12 +71,22 @@ def getFileInfo(fname, parameter=['all']):
     
     # PARSE INPUT
     fname = fname.replace("\\", "/")
-    fname = Path(fname)
+    fnameP = Path(fname)
     
-    f = open(fname, "r")
-    if f.mode == "r":
+    try:
+        f = open(fnameP, "r", encoding="ISO8859-1") 
+    except:
+        f = None
+            
+    if f is not None and f.mode == "r":
         contents = f.read()
-        if parameter == ['all']:
+        
+        if contents.find("READING SPEED") != -1:
+            # info file is old, first version with reading speed
+            output = getFCSinfo(fname)
+            return output
+        
+        elif parameter == ['all']:
             output = infoObj()
             
             info = float(getFCSinfoSingleParam(contents, "NUMBER OF TIME BINS PER PIXEL"))
@@ -117,6 +128,8 @@ def getFileInfo(fname, parameter=['all']):
         else:
             output = getFCSinfoSingleParam(contents, parameter)
             return float(output)
+    else:
+        return f
 
 
 def getFCSinfoSingleParam(contents, parameter):

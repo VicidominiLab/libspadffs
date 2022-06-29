@@ -11,6 +11,12 @@ setup(
     license='',
     author='Eli Slenders',
     author_email='eli.slenders@iit.it',
-    description='The analysis of confocal laser-scanning microscopy based fluorescence fluctuation spectroscopy (FFS) data'
+    description='The analysis of confocal laser-scanning microscopy based fluorescence fluctuation spectroscopy (FFS) data',
+    install_reqs = [
+                    "multipletau",
+                    "joblib",
+                    "h5py",
+                    "seaborn"
+                   ]
 )
 

@@ -4,64 +4,67 @@ import argparse
 import h5py
 import sys
 from spad_tools.listFiles import listFiles
+from spad_tools.array2tiff import array2tiff, array2RGBtiff
+from spad_tools.getFCSinfo import getFileInfo
+from libttp import ttp
 
 """
 This set of functions allows to read a binary file containing SPAD measurements
 using only the file name. The parameters are extracted from the matrix using
 the tags. The assumpstion is that the parameters are constant and that all the
 frames are complete.
-
 Author: Sebastian Acuna
-
 """
 
-def file_to_count(fname, datatype=np.uint16):
+def file_to_count(fname, datatype=np.uint16, printInfo=False):
     """
     Read a bin file and returns an array with the decoded count for each measurement
-
-
     Args:
         fname: name of the file containing the data
 
     Returns:
         A numpy array of unsigned int16 os size N x 25 where N is the number of measurements 
-
     """
     try:
         raw = np.fromfile(fname, dtype=">u8")
 
     except:
-        print("Error reading binary file")
+        if printInfo:
+            print("Error reading binary file")
         return None
 
     elements = raw.shape[0]
-    print(f"Elements: {elements}")
     positions = int(elements/2)
-    print(f"Positions: {positions}")
-
     raw_pos = np.reshape(raw, (positions, 2))
-    print(f"data table: {raw_pos.shape}")
+    if printInfo:
+        print(f"Elements: {elements}")
+        print(f"Positions: {positions}")
+        print(f"data table: {raw_pos.shape}")
 
     time_per_pixel_tag = np.bitwise_and(raw_pos[:,1], 0b1)
     idx = np.argmax(time_per_pixel_tag != time_per_pixel_tag[0]) # positions per time
     time_per_pixel = int(idx)
-    print(f"time per pixel: {time_per_pixel}")
+    if printInfo:
+        print(f"time per pixel: {time_per_pixel}")
 
     frame_tag = np.bitwise_and(np.right_shift(raw_pos[:,1], 2), 0b1)
     idx = np.argmax(frame_tag != frame_tag[0]) # positions per frame
     if idx == 0:
-        print("Unique frame")
+        if printInfo:
+            print("Unique frame")
         frames = 1
     else:
         frames = int(positions/idx) # TODO: check condition with larger dataset
         
     line_tag = np.bitwise_and(np.right_shift(raw_pos[:,1], 1), 0b1)
     idx = int(np.argmax(line_tag != line_tag[0])/time_per_pixel) # positions  per line
-    print(f"Positions per lines: {idx}")
+    if printInfo:
+        print(f"Positions per lines: {idx}")
     x = int(idx)
     y = int(positions/x/time_per_pixel/frames)
 
-    print(f"Dimensions: Y:{y}, X:{x}")
+    if printInfo:
+        print(f"Dimensions: Y:{y}, X:{x}")
 
     out = np.zeros((positions , 25), dtype = datatype)
 
@@ -73,13 +76,10 @@ def file_to_count(fname, datatype=np.uint16):
 def file_to_FCScount(fname, datatype=np.uint16, Npoints=-1, Noffset=0):
     """
     Read a bin file and returns an array with the decoded count for each measurement
-
     Args:
         fname: name of the file containing the data
-
     Returns:
         A numpy array of unsigned int16 os size N x 25 where N is the number of measurements 
-
     """
     try:
         Npoints = Npoints * 2
@@ -149,7 +149,7 @@ def matrix_to_count(values, out):
     out[:,22] = np.bitwise_and(np.right_shift(values[:,0], 64 - 12), 0b1111) # 4 bits
     out[:,23] = np.bitwise_and(np.right_shift(values[:,0], 64 - 8), 0b1111) # 4 bits
     out[:,24] = np.bitwise_and(np.right_shift(values[:,0], 64 - 4), 0b1111) # 4 bits
-
+    
 
 def reshape_to_5d(count, frames, y, x, time_per_pixel):
     """
@@ -168,6 +168,22 @@ def reshape_to_5d(count, frames, y, x, time_per_pixel):
 
     return np.reshape(count, (frames, y, x, time_per_pixel, 25))
 
+def reshape_to_6d(count, r, z, y, x, t=1, c=25):
+    """
+    Reshapes the data to a 6D array 
+
+    Args:
+        count: N x 25 count matrix
+        frames: number of frames contained in matrix
+        y:
+        x:
+        time:
+
+    Returns:
+        A 6-D matrix with dimensions (r, z, y, x, time, sensor)
+    """
+
+    return np.reshape(count, (r, z, y, x, t, 25))
 
 def image2h5(fname, sumTime=True, saveTimeInd=False):
     """
@@ -175,6 +191,10 @@ def image2h5(fname, sumTime=True, saveTimeInd=False):
         fname       file name
         sumTime     True to sum over all time bins, false otherwise
         saveTimeInd Save all time frames in separate files
+        TO DO:
+            add metadata to file:
+                data.pixelsize = 0.05
+                data.pixelsizeU = 'um', etc.
     """
     print(fname)
     [out, frames, y, x, time_per_pixel] = file_to_count(fname)
@@ -199,7 +219,7 @@ def image2h5(fname, sumTime=True, saveTimeInd=False):
     
     dataOut = np.squeeze(dataOut)
     
-    if saveTimeInd == bool and saveTimeInd:
+    if type(saveTimeInd) == bool and saveTimeInd:
         for i in range(np.shape(dataOut)[-1]):
             print("Saving frame " + str(i))
             h5f = h5py.File(fname[:-4] + "_frame_" + str(i) + ".h5", 'w')
@@ -227,8 +247,78 @@ def image2h5(fname, sumTime=True, saveTimeInd=False):
     
     return dataOut
 
+def ttr2h5(fnamettr, reorder25channels=True, CHANNELS=25, laser_MHz=80.0, dwell_time_us=10):
+    df = ttp.readNewProtocolFileToPandas(fnamettr, reorder25channels=reorder25channels, CHANNELS=CHANNELS)
+    ttp.convertFromPandasDataFrame(df, fnamettr[:-4] + '.h5', laser_MHz=laser_MHz, dwell_time_us=dwell_time_us, list_of_channels=list(np.arange(CHANNELS)))
+    
+def allTtr2h5(folder=''):
+    files = listFiles(folder, filetype='ttr')
+    filesh5 = listFiles(folder, filetype='h5')
+    for i, file in enumerate(filesh5):
+        filesh5[i] = file[:-3] + '.ttr'
+    for file in files:
+        if file not in filesh5:
+            print("converting " + file)
+            ttr2h5(file)
+    print('Done')
 
-def allBinImages2h5(folder, sumTime=True):
+def bin2h5(fname):
+    """
+    Convert bin file to h5 file with always 6D (r, z, x, y, t, c)
+        fname       file name
+            add metadata to file:
+                data.pixelsize = 0.05
+                data.pixelsizeU = 'um', etc.
+    """
+
+    [out, frames, y, x, time_per_pixel] = file_to_count(fname)
+    data = reshape_to_6d(out, 1, frames, y, x, time_per_pixel, 25)
+           
+    # store data
+    h5f = h5py.File(fname[:-4] + ".h5", 'w')
+    h5f.create_dataset('dataset_1', data=data)
+    h5f.close()
+    print('Done')
+
+def allBinImages2tiff(folder):
+    """
+    Convert all bin files in a folder to tiff images
+        folder      path to folder (use either \\ or / to go into a folder)
+    """
+    files = listFiles(folder)
+    for file in files:
+        print("saving " + file)
+        dummy = image2tiff(file)
+
+
+def image2tiff(fname):
+    """
+    Convert bin file to tiff image file
+        fname       file name
+    """
+    
+    [out, frames, y, x, time_per_pixel] = file_to_count(fname)
+    data = reshape_to_5d(out, frames, y, x, time_per_pixel)
+    print(np.shape(data))
+    info = getFileInfo(fname[:-4] + '_info.txt')
+    if np.ndim(data) == 4 and frames == 1:
+        # 4D data set [y, x, time, ch] --> sum over time bins
+        dataOut = np.sum(data, 2)
+    elif np.ndim(data) == 5:
+        # 5D data set [z, y, x, time, ch] --> sum over time bins and z
+        dataOut = np.sum(data, 3)
+        dataOut = np.sum(dataOut, 0)
+    
+    dataOut = np.float64(dataOut)    
+    dataOut = np.squeeze(dataOut)
+    
+    print(np.shape(dataOut))
+    
+    array2tiff(dataOut, fname[:-4], pxsize=info.pxsize, dim="yxz", transpose3=True)
+    array2RGBtiff(np.sum(dataOut, 2), fname[:-4] + '_RGB')
+
+
+def allBinImages2h5(folder, sumTime=True, saveTimeInd=False):
     """
     Convert all bin files in a folder to h5 files
         folder      path to folder (use either \\ or / to go into a folder)
@@ -237,7 +327,7 @@ def allBinImages2h5(folder, sumTime=True):
     files = listFiles(folder)
     for file in files:
         print("converting " + file)
-        dummy = image2h5(file, sumTime=True)
+        dummy = image2h5(file, sumTime, saveTimeInd)
 
 
 if __name__ == "__main__":

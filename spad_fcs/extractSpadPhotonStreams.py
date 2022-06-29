@@ -32,7 +32,7 @@ def extractSpadPhotonStreams(data, mode):
     
     if mode == 'sum3':
         # get list of detector fields
-        listOfFields = [4, 5, 6, 9, 10, 11, 14, 15, 16]
+        listOfFields = [6, 7, 8, 11, 12, 13, 16, 17, 18] # [4, 5, 6, 9, 10, 11, 14, 15, 16]
         listOfFields  = ['det' + str(i) for i in listOfFields]
     
     elif mode == 'sum5':

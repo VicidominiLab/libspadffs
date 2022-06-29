@@ -21,13 +21,16 @@ def FCSfit(Gexp, tau, fitfun, fitInfo, param, lBounds, uBounds, plotInfo, splitD
     fitfun      Fit function
                     'fitfun2C'           Fit two components
                     'fitfunDualFocus'    Fit two-focus FCS
+                    'fitfunCircFCS'      Circular scanning-FCS
     fitInfo     np.array boolean vector with [N, tauD, SP, offset, 1e6*A, B, vx, vy]
                     1 if this value has to be fitted
                     0 if this value is fixed during the fit
     param       np.array vector with start values for [N, tauD, SP, offset, A, B, vx, vy]
                     A ~ 1e6*2.5e-8
                     B ~ -1.05
-    savefig     0 to not save the figure
+    plotInfo    "central", "sum3", or "sum5". Determines only the color of the plot
+                -1 to not plot the figure
+    savefig     0 to not plot but not save the figure
                 file name with extension to save as "png" or "eps"
     ===========================================================================
     Output      Meaning
@@ -46,13 +49,17 @@ def FCSfit(Gexp, tau, fitfun, fitInfo, param, lBounds, uBounds, plotInfo, splitD
 
     if fitfun == 'fitfun2C':
         fitresult = least_squares(fitfun2C, fitparamStart, args=(fixedparam, fitInfo, tau, Gexp), bounds=(lowerBounds, upperBounds))
+    if fitfun == 'fitfunAn':
+        fitresult = least_squares(fitfunAn, fitparamStart, args=(fixedparam, fitInfo, tau, Gexp), bounds=(lowerBounds, upperBounds))
     elif fitfun == 'fitfunDualFocus':
         fitresult = least_squares(fitfunDualFocus, fitparamStart, args=(fixedparam, fitInfo, tau, Gexp, splitData), bounds=(lowerBounds, upperBounds))
     elif fitfun == 'fitfunCircFCS':
         fitresult = least_squares(fitfunCircFCS, fitparamStart, args=(fixedparam, fitInfo, tau, Gexp), bounds=(lowerBounds, upperBounds))
 
-    plotFit(tau, Gexp, param, fitInfo, fitresult, plotInfo, savefig, plotTau)
-    print('tauD = ' + str(fitresult.x[1]) + ' ms')
+    if plotInfo != -1:
+        plotFit(tau, Gexp, param, fitInfo, fitresult, plotInfo, savefig, plotTau)
+    if len(fitresult.x) > 1:
+        print('tauD = ' + str(fitresult.x[1]) + ' ms')
     print('chi2 = ' + str(chi2FCSfit(tau, Gexp, fitInfo, fitresult)))
 
     return fitresult
@@ -222,6 +229,52 @@ def fitfun(fitparamStart, fixedparam, fitInfo, tau, yexp):
     
     return res
 
+def fitfunAn(fitparamStart, fixedparam, fitInfo, tau, yexp):
+    """
+    FCS fit anomalous diffusion function
+    ==========  ===============================================================
+    Input       Meaning
+    ----------  ---------------------------------------------------------------
+    fitparamStart   List with starting values for the fit parameters:
+                        order: [N, tauD, SP, offset, alpha]
+                        E.g. if only N and tauD are fitted, this becomes a two
+                        element vector [1, 1e-3]
+    fixedparam      List with values for the fixed parameters:
+                        order: [N, tauD, SP, offset, alpha]
+                        same principle as fitparamStart
+    fitInfo         np.array boolean vector with always 5 elements
+                        1 for a fitted parameter, 0 for a fixed parameter
+                        E.g. to fit N and tau D this becomes [1, 1, 0, 0, 0]
+                        order: [N, tauD, SP, offset, alpha]
+    tau             Vector with tau values
+    yexp            Vector with experimental autocorrelation
+    ==========  ===============================================================
+    Output      Meaning
+    ----------  ---------------------------------------------------------------
+    res         Residuals
+    ==========  ===============================================================
+    """
+    
+    fitparam = np.float64(np.zeros(5))
+    fitparam[fitInfo==1] = fitparamStart
+    fitparam[fitInfo==0] = fixedparam
+    
+    print(fitparam)
+    
+    N = fitparam[0]
+    tauD = fitparam[1]
+    SF = fitparam[2]
+    offset = fitparam[3]
+    alpha = fitparam[4]
+
+    # calculate theoretical autocorrelation function    
+    FCStheo = FCSanalytical(tau, N, tauD, SF, offset, 0, 0, alpha)
+    
+    # calcualte residuals
+    res = yexp - FCStheo
+    
+    return res
+
 
 def fitfun2C(fitparamStart, fixedparam, fitInfo, tau, yexp):
     """
@@ -271,7 +324,7 @@ def fitfun2C(fitparamStart, fixedparam, fitInfo, tau, yexp):
     F = fitparam[3]
     alpha = fitparam[4]
     T = fitparam[5]
-    tautrip = 1e6 * fitparam[6] # s
+    tautrip = 1e-6 * fitparam[6] # s
     SF = fitparam[7]
     offset = fitparam[8]
     A = 1e-6 * fitparam[9]
@@ -347,11 +400,6 @@ def fitfunDualFocus(fitparamStart, fixedparam, fitInfo, tau, yexp, splitData, us
     # get diffusion coefficient
     D = w[0]**2 / 4 / tauD0
     
-#    plt.figure()
-#    for i in range(Ntraces):
-#        plt.plot(tau[sD[i]:sD[i+1]], FCSDualFocus(tau[sD[i]:sD[i+1]], N[i], D, w[i], SF[i], rho[i], dc[i]))
-#        plt.plot(tau[sD[i]:sD[i+1]], yexp[sD[i]:sD[i+1]])
-#    plt.xscale('log')
     yModel = np.concatenate([FCSDualFocus(tau[sD[i]:sD[i+1]], N[i], D, w[i], SF[i], rhox[i], rhoy[i], dc[i], vx, vy) for i in range(Ntraces)])
 
     res = yexp - yModel

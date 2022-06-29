@@ -28,7 +28,7 @@ def fitPowerLawG(G, start=0, plotIndv=True, fitInfo=np.array([1, 1, 0]), param=n
         y = Gtemp[start:,1]
         x = Gtemp[start:,0]
         fitresult = fitPowerLaw(y, x, 'powerlaw', fitInfo, param, np.array([0, -10, -10]), np.array([100, 0, 100]), 0)
-        if len(Gkeys) > 10:
+        if len(Gkeys) > 10 and 'det' in GName:
             detNr = int(GName[3:-8])
         else:
             detNr = i
@@ -59,6 +59,7 @@ def fitPowerLaw(y, x, fitfun, fitInfo, param, lBounds, uBounds, savefig=0):
     fitfun      Fit function
                     'powerlaw'           A * B^x + C
                     'exp'                A * exp(-alpha * x) + B
+                    'linear'             A * x + B
     fitInfo     np.array boolean vector with [A, B, C]
                     1 if this value has to be fitted
                     0 if this value is fixed during the fit
@@ -94,6 +95,8 @@ def fitPowerLaw(y, x, fitfun, fitInfo, param, lBounds, uBounds, savefig=0):
         fitresult = least_squares(fitfunPowerLaw, fitparamStart, args=(fixedparam, fitInfo, x, y), bounds=(lowerBounds, upperBounds))
     elif fitfun == 'exp':
         fitresult = least_squares(fitfunExp, fitparamStart, args=(fixedparam, fitInfo, x, y), bounds=(lowerBounds, upperBounds))
+    elif fitfun == 'linear':
+        fitresult = least_squares(fitfunLinear, fitparamStart, args=(fixedparam, fitInfo, x, y), bounds=(lowerBounds, upperBounds))
         
     #plotFit(x, y, param, fitInfo, fitresult, savefig)
 
@@ -180,6 +183,47 @@ def fitfunExp(fitparamStart, fixedparam, fitInfo, x, y):
 
     # calculate theoretical power law function
     ytheo = A * np.exp(-alpha * x) + B
+    
+    # calculate residuals
+    res = y - ytheo
+    
+    return res
+   
+def fitfunLinear(fitparamStart, fixedparam, fitInfo, x, y):
+    """
+    Linear fit function
+    y = A * x + B
+    ==========  ===============================================================
+    Input       Meaning
+    ----------  ---------------------------------------------------------------
+    fitparamStart   List with starting values for the fit parameters:
+                        order: [A, B]
+                        E.g. if only A is fitted, this becomes a one
+                        element vector [1e-4]
+    fixedparam      List with values for the fixed parameters:
+                        order: [A, B]
+                        same principle as fitparamStart
+    fitInfo         np.array boolean vector with always 2 elements
+                        1 for a fitted parameter, 0 for a fixed parameter
+    x               Vector with x values
+    y               Vector with experimental y values
+    ==========  ===============================================================
+    Output      Meaning
+    ----------  ---------------------------------------------------------------
+    res         Residuals
+    ==========  ===============================================================
+    """
+    
+    fitparam = np.float64(np.zeros(len(fitInfo)))
+    fitparam[fitInfo==1] = fitparamStart
+    fitparam[fitInfo==0] = fixedparam
+    
+    # get parameters
+    A = fitparam[0]
+    B = fitparam[1]
+
+    # calculate theoretical power law function
+    ytheo = A * x + B
     
     # calculate residuals
     res = y - ytheo

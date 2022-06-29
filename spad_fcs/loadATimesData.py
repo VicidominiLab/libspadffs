@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from spad_fcs.FCS2ArrivalTimes import aTimesData
 import h5py
-from libttp import ttp as ttp
+import libttp.ttp as ttp
 import os
 from spad_tools.listFiles import listFiles
 from spad_tools.closefile import closefile
@@ -38,6 +38,7 @@ def loadATimesData(fname, channels=21, sysclk_MHz=240):
     else:
         # individual channel numbers are given, e.g. [15, 17, 18]
         channels = [str(x) for x in channels]
+        Nchannels = len(channels)
     
     data = aTimesData()
     

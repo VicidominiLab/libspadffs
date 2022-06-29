@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-def phasor(H):
+def phasor(H, normalize=True):
     """
     Caculate phasor values from given histogram
     g = 1 / N * sum(H * cos(f))
@@ -21,8 +21,12 @@ def phasor(H):
     Np = len(H)
     F = 2 * np.pi * np.linspace(0, Np-1, Np) / (Np - 1)
     
-    g = np.sum(H * np.cos(F)) / np.sum(H)
-    s = np.sum(H * np.sin(F)) / np.sum(H)
+    norm = 1
+    if normalize:
+        norm = np.sum(H)
+    
+    g = np.sum(H * np.cos(F)) / norm
+    s = np.sum(H * np.sin(F)) / norm
     
     z = complex(g, s)
     

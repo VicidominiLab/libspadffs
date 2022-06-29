@@ -1,3 +1,5 @@
 multipletau
 joblib
 h5py
+seaborn
+

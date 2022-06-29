@@ -29,13 +29,14 @@ def binData(data, binsize):
     return bdata
 
 
-def binDataChunks(data, binsize):
+def binDataChunks(data, binsize, printChunkNr=False):
     bdata = np.empty((0, np.size(data, 1)), int)
     N = np.size(data, 0)
-    chunksize = int(binsize * np.floor(10e6 / binsize))
+    chunksize = np.min([int(binsize * np.floor(10e6 / binsize)), N])
     Nchunks = int(np.floor(N/chunksize))
     for i in range(Nchunks):
-        print("Chunk " + str(i+1) + " of " + str(Nchunks))
+        if printChunkNr:
+            print("Chunk " + str(i+1) + " of " + str(Nchunks))
         newbindata = binData(data[i*chunksize:(i+1)*chunksize, :], binsize)
         np.size(newbindata)
         bdata = np.append(bdata, newbindata, axis=0)

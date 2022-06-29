@@ -1,6 +1,6 @@
 import numpy as np
 from checkfname import checkfname
-from tifffile import imwrite
+from tifffile import imwrite, imread
 from matplotlib import cm
 
 def array2tiff(data, fname, pxsize=1, dim="yxz", transpose3=True):
@@ -106,3 +106,25 @@ def array2RGBtiff(data, fname, cmap=cm.hot):
     imwrite(fname, image, photometric='rgb')
     
     print("Done.")
+    
+def tiff2array(fileList, Nx, Ny):
+    """
+    Read .tiff images and return 3D numpy array
+    ===========================================================================
+    Input       Meaning
+    ---------------------------------------------------------------------------
+    fileList    List of .tiff filenames to read
+    Nx, Ny      Dimensions of the images
+    ===========================================================================
+    Output      Meaning
+    ---------------------------------------------------------------------------
+    imarray     3D numpy array (Nf x Ny x Nx) with Nf the number of files
+    ===========================================================================
+    """
+    Nf = len(fileList)
+    imarray = np.zeros((Nf, Ny, Nx))
+    for i in range(Nf):
+        fname = fileList[i]
+        im = imread(fname)
+        imarray[i,:,:] = np.array(im)
+    return imarray
