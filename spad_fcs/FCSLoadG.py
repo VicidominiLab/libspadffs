@@ -5,11 +5,11 @@ from spad_tools.csv2array import csv2array
 
 def FCSLoadG(fnameRoot, folderName="", printFileNames=True):
     """
-    Load correlations from .asc files into data object
+    Load correlations from .csv files into data object
     ===========================================================================
     Input       Meaning
     ----------  ---------------------------------------------------------------
-    fnameRoot   'Root' of the file names. E.g. if the .asc files are named
+    fnameRoot   'Root' of the file names. E.g. if the .csv files are named
                 'FCS_beads_central', 'FCS_beads_sum3', and 'FCS_beads_sum5',
                 then 'FCS_beads_' is the common root
     folderName  Name of the folder to look into

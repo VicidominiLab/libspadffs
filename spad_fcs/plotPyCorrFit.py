@@ -139,7 +139,7 @@ def plotPyCorrFit(file, info="", savefig=0, plotTau=True):
     Gfit = data[:,2]
     Gres = data[:,3]
     taumin = np.min(tau)
-    taumax = np.min([0.1, np.max(tau)])
+    taumax = np.min([0.5, np.max(tau)])
     print(taumax)
     
     # plot color

@@ -3,7 +3,7 @@ import numpy as np
 from spad_fcs.distance2detElements import distance2detElements
 from spad_tools.castData import castData
 
-def plotAiry(data, showPerc=True, dtype='int64', normalize=False, savefig=0):
+def plotAiry(data, showPerc=True, dtype='int64', normalize=False, savefig=0, vminmax = 'auto'):
 
     """
     Make Airy plot of SPAD-FCS data with 25 channels.
@@ -17,6 +17,7 @@ def plotAiry(data, showPerc=True, dtype='int64', normalize=False, savefig=0):
     dtype       Data type
     normalize   Convert total counts to average counts per bin if True
     savefig     Path to store figure
+    vminmax     Vector with minimum and maximum color bar value
     ==========  ===============================================================
     Output      Meaning
     ----------  ---------------------------------------------------------------
@@ -34,20 +35,26 @@ def plotAiry(data, showPerc=True, dtype='int64', normalize=False, savefig=0):
             airy = data
         airy2 = airy[0:25]
     else:
-        # data is FCS2ArrivalTimes.aTimesData object
-        airy2 = np.zeros(25)
-        # *  0  1  2  *
-        # 3  4  5  6  7
-        # 8  9  10 11 12
-        # 13 14 15 16 17
-        # *  18 19 20 *
-        dets = [1, 2, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 21, 22, 23]
-        for det in range(21):
-            if hasattr(data, 'det' + str(det)):
-                airy2[dets[det]] = len(getattr(data, 'det' + str(det)))
-            else:
-                airy2[dets[det]] = 0
-            airy = airy2
+        if hasattr(data, 'det24'):
+            # data is FCS2ArrivalTimes.aTimesData object with 25 elements
+            airy2 = np.zeros(25)
+            for det in range(25):
+                airy2[det] = len(getattr(data, 'det' + str(det)))
+        else:
+            # data is FCS2ArrivalTimes.aTimesData object with 21 elements
+            airy2 = np.zeros(25)
+            # *  0  1  2  *
+            # 3  4  5  6  7
+            # 8  9  10 11 12
+            # 13 14 15 16 17
+            # *  18 19 20 *
+            dets = [1, 2, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 21, 22, 23]
+            for det in range(21):
+                if hasattr(data, 'det' + str(det)):
+                    airy2[dets[det]] = len(getattr(data, 'det' + str(det)))
+                else:
+                    airy2[dets[det]] = 0
+        airy = airy2
     
     if normalize:
         airy2 = airy2 / np.size(data, 0)
@@ -64,7 +71,10 @@ def plotAiry(data, showPerc=True, dtype='int64', normalize=False, savefig=0):
     plt.rcParams.update({'font.size': fontSize})
     plt.rcParams['mathtext.rm'] = 'Arial'
     
-    plt.imshow(airy2, cmap='hot', interpolation='nearest')
+    if vminmax == 'auto':
+        plt.imshow(airy2, cmap='hot', interpolation='nearest')
+    else:
+        plt.imshow(airy2, cmap='hot', interpolation='nearest', vmin=vminmax[0], vmax=vminmax[1])
     ax = plt.gca()
     
     # Major ticks
@@ -86,7 +96,10 @@ def plotAiry(data, showPerc=True, dtype='int64', normalize=False, savefig=0):
     if type(showPerc) is str and showPerc=="numbers":
         for i in range(5):
             for j in range(5):
-                perc = round(airy2[i, j] / airyMax * 100)
+                if vminmax == 'auto':
+                    perc = round(airy2[i, j] / airyMax * 100)
+                else:
+                    perc = round(airy2[i, j] / vminmax[1] * 100)
                 c="k"
                 if perc < airyCentPerc:
                     c="w"
@@ -94,7 +107,10 @@ def plotAiry(data, showPerc=True, dtype='int64', normalize=False, savefig=0):
     elif showPerc:
         for i in range(5):
             for j in range(5):
-                perc = round(airy2[i, j] / airyMax * 100)
+                if vminmax == 'auto':
+                    perc = round(airy2[i, j] / airyMax * 100)
+                else:
+                    perc = round(airy2[i, j] / vminmax[1] * 100)
                 c="k"
                 if perc < airyCentPerc:
                     c="w"
@@ -102,6 +118,8 @@ def plotAiry(data, showPerc=True, dtype='int64', normalize=False, savefig=0):
 
     if savefig != 0:
         plt.tight_layout()
+        if savefig[-3:] == 'svg':
+            plt.rcParams['svg.fonttype'] = 'none'
         plt.savefig(savefig, format=savefig[-3:])
 
     return airy

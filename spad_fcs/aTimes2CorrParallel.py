@@ -29,7 +29,7 @@ def aTimes2CorrsParallel(data, listOfCorr, accuracy=50, taumax="auto", performCo
     
     G = correlations()
     
-    Ndet = 21
+    Ndet = 25
     calcAv = False
     if 'av' in listOfCorr:
         # calculate the correlations of all channels and calculate average

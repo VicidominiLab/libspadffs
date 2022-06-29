@@ -13,7 +13,7 @@ def path2fname(path):
     folderName  Folder name, e.g. 'C:\\Users\\SPAD-FCS\\'
     ==========  ===============================================================
     """
-    
+    path = path.replace("/", "\\")
     fname = path.split('\\')[-1]
     folderName = '\\'.join(path.split('\\')[0:-1]) + '\\'
     

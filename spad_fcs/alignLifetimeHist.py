@@ -22,6 +22,9 @@ def alignLifetimeHist(data, n=15):
     
     histList = [i for i in list(data.__dict__.keys()) if i.startswith('hist')]
     
+    hshifts = np.zeros(len(histList))
+    
+    i = 0
     for hist in histList:
         # get histogram
         histD = copy.deepcopy(getattr(data, hist))
@@ -35,5 +38,9 @@ def alignLifetimeHist(data, n=15):
         histD[:,1] = np.roll(histD[:,1], -maxInd)
         # store shifted histogram in data object
         setattr(data, 'A' + hist, histD)
+        # store shift value
+        hshifts[i] = maxInd
+        i += 1
+    setattr(data, 'hshifts', hshifts)
     
     return data

@@ -1,4 +1,4 @@
-# import these libraries upon startup
+# import these libraries upon startup of Spyder
 from constants import constants
 import numpy as np
 import matplotlib.pyplot as plt

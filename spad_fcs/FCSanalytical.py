@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def FCSanalytical(tau, N, tauD, SF, offset, A=0, B=0):
+def FCSanalytical(tau, N, tauD, SF, offset, A=0, B=0, alpha=1):
     """
     Calculate the analytical FCS autocorrelation function assuming 3D Gaussian
     diffusion without triplet state
@@ -16,6 +16,7 @@ def FCSanalytical(tau, N, tauD, SF, offset, A=0, B=0):
     SF          Shape factor of the PSF
     A, B        Afterpulsing characteristics
                 Power law assumed: G = A * tau^B (with B < 0)
+    alpha       Anomalous diffusion parameter (alpha = 1 for free diffusion)
     ==========  ===============================================================
     Output      Meaning
     ----------  ---------------------------------------------------------------
@@ -24,8 +25,8 @@ def FCSanalytical(tau, N, tauD, SF, offset, A=0, B=0):
     """
 
     # standard autocorrelation function
-    Gy = 1 / N / (1 + tau/tauD) # lateral correlation
-    Gy /= np.sqrt(1 + tau / (SF**2*tauD)) # axial correlation
+    Gy = 1 / N / (1 + (tau/tauD)**alpha) # lateral correlation
+    Gy /= np.sqrt(1 + tau**alpha / (SF**2 * tauD**alpha)) # axial correlation
     Gy += offset # offset
     # power law component to take into account afterpulsing (see e.g. Buchholz, Biophys J., 2018)
     Gy += A * tau**B
@@ -36,9 +37,6 @@ def FCSanalytical(tau, N, tauD, SF, offset, A=0, B=0):
         Garray = np.zeros((np.size(Gy, 0), 2))
     Garray[:, 0] = tau
     Garray[:, 1] = Gy
-
-    #G = correlations()
-    #setattr(G, 'theory', Garray)
 
     return Gy
 
