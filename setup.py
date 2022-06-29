@@ -15,7 +15,8 @@ setup(
     install_reqs = [
                     "multipletau",
                     "joblib",
-                    "h5py"
+                    "h5py",
+                    "seaborn"
                    ]
 )
 
