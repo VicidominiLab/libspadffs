@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from spad_fcs.FCS2ArrivalTimes import aTimesData
 import h5py
-from libttp import ttp as ttp
+from libttp.ttp import ttp as ttp
 import os
 from spad_tools.listFiles import listFiles
 from spad_tools.closefile import closefile
